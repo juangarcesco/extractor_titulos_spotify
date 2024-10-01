@@ -1,5 +1,6 @@
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
+import sqlite3
 
 # Configura tus credenciales
 client_id = 'TU_CLIENT_ID'
@@ -42,11 +43,43 @@ def obtener_todos_los_episodios(podcast_id):
 
     return episodios
 
+import sqlite3
+
+def exportar_a_sqlite(episodios, db_name='podcast.db'):
+    # Conectar a la base de datos (se creará si no existe)
+    conn = sqlite3.connect(db_name)
+    cursor = conn.cursor()
+    
+    # Crear la tabla si no existe
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS episodios (
+        numero INTEGER,
+        nombre TEXT,
+        duracion REAL,
+        fecha TEXT,
+        descripcion TEXT
+    )
+    ''')
+    
+    # Insertar episodios en la tabla
+    for episodio in episodios:
+        # Asegurarse de que la duración tenga dos decimales
+        duracion_redondeada = round(episodio['duracion'], 2)
+        
+        cursor.execute('''
+        INSERT INTO episodios (numero, nombre, duracion, fecha, descripcion) VALUES (?, ?, ?, ?, ?)
+        ''', (episodio['numero'], episodio['name'], duracion_redondeada, episodio['fecha'], episodio['descripcion']))
+    
+    # Guardar cambios y cerrar la conexión
+    conn.commit()
+    conn.close()
+
+
 # Reemplaza 'PODCAST_ID' con el ID del podcast
-podcast_id = 'EL_ID_DEL_PODCAST'
+podcast_id = '2qWpUi4qOYhciQyk9c0T4R'
 todos_los_episodios = obtener_todos_los_episodios(podcast_id)
 
-# Exportar a un archivo .txt con numeración, descripción y duración
+# Exportar a un archivo .txt
 with open("episodios_podcast.txt", "w", encoding="utf-8") as archivo:
     for episodio in todos_los_episodios:
         archivo.write(f"Título {episodio['numero']}: {episodio['name']}\n")
@@ -55,4 +88,9 @@ with open("episodios_podcast.txt", "w", encoding="utf-8") as archivo:
         archivo.write(f"Descripción: {episodio['descripcion']}\n\n")  # Añadir una línea en blanco entre episodios
 
 print("Episodios exportados a 'episodios_podcast.txt'")
+
+# Exportar a SQLite
+exportar_a_sqlite(todos_los_episodios)
+print("Episodios exportados a 'episodios_podcast.db'")
+
 
